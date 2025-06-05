@@ -20,8 +20,8 @@ with st.expander("📌 Disclaimer (click to expand)"):
     **Email:** [joana.paiva82@outlook.com](mailto:joana.paiva82@outlook.com)
     """)
 
-# --- Load from GitHub raw CSV ---
-csv_url = "https://raw.githubusercontent.com/<your-username>/<your-repo>/main/USVs_Summary_improve_clean_links_v0.csv"
+# --- Load CSV from GitHub ---
+csv_url = "https://raw.githubusercontent.com/joanapaiva82/USV_Dashboard/main/USVs_Summary_improve_clean_links_v0.csv"
 
 try:
     df = pd.read_csv(csv_url, encoding="utf-8", on_bad_lines="skip")
@@ -32,7 +32,7 @@ except Exception as e:
 df = df.dropna(how="all")
 df.columns = df.columns.str.strip()
 
-# --- Reset counter
+# --- Reset state
 if "reset_counter" not in st.session_state:
     st.session_state.reset_counter = 0
 
@@ -99,7 +99,7 @@ for col, selected_vals in dropdown_filters.items():
         filtered_df[col].astype(str).apply(lambda x: any(val.lower() in x.lower() for val in selected_vals))
     ]
 
-# --- Clickable link column config
+# --- Spec Sheet clickable link column
 link_config = {}
 if "Spec Sheet (URL)" in df.columns:
     link_config["Spec Sheet (URL)"] = st.column_config.LinkColumn(
@@ -107,7 +107,7 @@ if "Spec Sheet (URL)" in df.columns:
         help="Click to open manufacturer spec page"
     )
 
-# --- Display Results
+# --- Display Results ---
 st.markdown(f"Loaded `{filtered_df.shape[0]}` rows × `{filtered_df.shape[1]}` columns")
 st.markdown("### 📋 Filtered Results (Click 'Spec Sheet' to view links)")
 st.dataframe(filtered_df, use_container_width=True, column_config=link_config)
