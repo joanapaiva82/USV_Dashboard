@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import os
 
 # --- Setup page ---
 st.set_page_config(page_title="Global USV's Dashboard", layout="wide")
@@ -21,27 +20,19 @@ with st.expander("📌 Disclaimer (click to expand)"):
     **Email:** [joana.paiva82@outlook.com](mailto:joana.paiva82@outlook.com)
     """)
 
-# --- Load file (CSV or Excel) ---
-uploaded_file = st.file_uploader("📂 Upload your USV summary (.csv or .xlsx)", type=["csv", "xlsx"])
+# --- Load from GitHub raw CSV ---
+csv_url = "https://raw.githubusercontent.com/<your-username>/<your-repo>/main/USVs_Summary_improve_clean_links_v0.csv"
 
-# --- Fallback to local file if no upload (for local development)
-if uploaded_file:
-    if uploaded_file.name.endswith(".csv"):
-        df = pd.read_csv(uploaded_file)
-    else:
-        df = pd.read_excel(uploaded_file, engine="openpyxl")
-elif os.path.exists("USVs_Summary_improve_clean_links_v0.csv"):
-    df = pd.read_csv("USVs_Summary_improve_clean_links_v0.csv")
-    st.info("✅ Loaded default local file: `USVs_Summary_improve_clean_links_v0.csv`")
-else:
-    st.warning("📎 Please upload a `.csv` or `.xlsx` file to view the dashboard.")
+try:
+    df = pd.read_csv(csv_url, encoding="utf-8", on_bad_lines="skip")
+except Exception as e:
+    st.error(f"❌ Could not load data from GitHub: {e}")
     st.stop()
 
-# --- Clean up dataframe
 df = df.dropna(how="all")
 df.columns = df.columns.str.strip()
 
-# --- Reset state
+# --- Reset counter
 if "reset_counter" not in st.session_state:
     st.session_state.reset_counter = 0
 
@@ -55,7 +46,6 @@ with st.sidebar:
 
     global_keyword = st.text_input("🌐 Global Keyword (search all fields)", key=f"global_keyword_{st.session_state.reset_counter}")
 
-    # Grouped field layout using > as side-by-side columns
     grouped_fields = [
         ("Name", "Manufacturer"),
         ("Country", None),
@@ -109,12 +99,12 @@ for col, selected_vals in dropdown_filters.items():
         filtered_df[col].astype(str).apply(lambda x: any(val.lower() in x.lower() for val in selected_vals))
     ]
 
-# --- Spec Sheet link handling
+# --- Clickable link column config
 link_config = {}
 if "Spec Sheet (URL)" in df.columns:
     link_config["Spec Sheet (URL)"] = st.column_config.LinkColumn(
         label="Spec Sheet (URL)",
-        help="Click to open manufacturer spec sheet"
+        help="Click to open manufacturer spec page"
     )
 
 # --- Display Results
