@@ -21,7 +21,7 @@ with st.expander("📌 Disclaimer (click to expand)"):
     """)
 
 # --- Load Excel ---
-df = pd.read_excel("USVs_Summary_improve.xlsx", engine="openpyxl")
+df = pd.read_excel("USVs_Summary_improve_clean_links_v0.csv", engine="openpyxl")
 df = df.dropna(how="all")
 df.columns = df.columns.str.strip()
 
