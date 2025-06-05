@@ -1,9 +1,10 @@
 import streamlit as st
 import pandas as pd
+import os
 
 # --- Setup page ---
 st.set_page_config(page_title="Global USV's Dashboard", layout="wide")
-st.title("📊 Global USV's Dashboard – Excel Viewer")
+st.title("📊 Global USV's Dashboard – Excel/CSV Viewer")
 
 with st.expander("📌 Disclaimer (click to expand)"):
     st.markdown("""
@@ -20,12 +21,27 @@ with st.expander("📌 Disclaimer (click to expand)"):
     **Email:** [joana.paiva82@outlook.com](mailto:joana.paiva82@outlook.com)
     """)
 
-# --- Load Excel ---
-df = pd.read_excel("USVs_Summary_improve_clean_links_v0.csv", engine="openpyxl")
+# --- Load file (CSV or Excel) ---
+uploaded_file = st.file_uploader("📂 Upload your USV summary (.csv or .xlsx)", type=["csv", "xlsx"])
+
+# --- Fallback to local file if no upload (for local development)
+if uploaded_file:
+    if uploaded_file.name.endswith(".csv"):
+        df = pd.read_csv(uploaded_file)
+    else:
+        df = pd.read_excel(uploaded_file, engine="openpyxl")
+elif os.path.exists("USVs_Summary_improve_clean_links_v0.csv"):
+    df = pd.read_csv("USVs_Summary_improve_clean_links_v0.csv")
+    st.info("✅ Loaded default local file: `USVs_Summary_improve_clean_links_v0.csv`")
+else:
+    st.warning("📎 Please upload a `.csv` or `.xlsx` file to view the dashboard.")
+    st.stop()
+
+# --- Clean up dataframe
 df = df.dropna(how="all")
 df.columns = df.columns.str.strip()
 
-# --- Reset trigger
+# --- Reset state
 if "reset_counter" not in st.session_state:
     st.session_state.reset_counter = 0
 
@@ -33,15 +49,13 @@ if "reset_counter" not in st.session_state:
 with st.sidebar:
     st.subheader("🔎 Keyword Filters")
 
-    # Reset button
     if st.button("🔄 Clear All Filters"):
         st.session_state.global_keyword = ""
         st.session_state.reset_counter += 1
 
-    # Global keyword
     global_keyword = st.text_input("🌐 Global Keyword (search all fields)", key=f"global_keyword_{st.session_state.reset_counter}")
 
-    # Define field layout groups for side-by-side filters
+    # Grouped field layout using > as side-by-side columns
     grouped_fields = [
         ("Name", "Manufacturer"),
         ("Country", None),
@@ -85,19 +99,17 @@ with st.sidebar:
 # --- Filtering Logic ---
 filtered_df = df.copy()
 
-# Global keyword filter
 if global_keyword:
     keyword = global_keyword.lower()
     mask = filtered_df.apply(lambda row: row.astype(str).str.lower().str.contains(keyword).any(), axis=1)
     filtered_df = filtered_df[mask]
 
-# Column filters
 for col, selected_vals in dropdown_filters.items():
     filtered_df = filtered_df[
         filtered_df[col].astype(str).apply(lambda x: any(val.lower() in x.lower() for val in selected_vals))
     ]
 
-# --- Spec Sheet clickable
+# --- Spec Sheet link handling
 link_config = {}
 if "Spec Sheet (URL)" in df.columns:
     link_config["Spec Sheet (URL)"] = st.column_config.LinkColumn(
@@ -105,7 +117,7 @@ if "Spec Sheet (URL)" in df.columns:
         help="Click to open manufacturer spec sheet"
     )
 
-# --- Display Results ---
+# --- Display Results
 st.markdown(f"Loaded `{filtered_df.shape[0]}` rows × `{filtered_df.shape[1]}` columns")
 st.markdown("### 📋 Filtered Results (Click 'Spec Sheet' to view links)")
 st.dataframe(filtered_df, use_container_width=True, column_config=link_config)
